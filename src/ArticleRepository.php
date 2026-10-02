@@ -55,6 +55,33 @@ final class ArticleRepository
      */
     public function findLatestPerCategory(int $limit): array
     {
+        $stmt = $this->pdo->prepare(
+            'WITH ranked AS (
+                 SELECT c.id   AS category_id,
+                        c.name AS category_name,
+                        a.id, a.title, a.description, a.image, a.views, a.published_at,
+                        ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY a.published_at DESC, a.id DESC) AS rn
+                 FROM categories c
+                 JOIN article_category ac ON ac.category_id = c.id
+                 JOIN articles a ON a.id = ac.article_id
+             )
+             SELECT category_id, category_name, id, title, description, image, views, published_at
+             FROM ranked
+             WHERE rn <= :limit
+             ORDER BY category_name, category_id, rn'
+        );
+        $stmt->execute(['limit' => $limit]);
+
+        // Строки уже идут блоками: по категории, внутри — от новой статьи к старой
+        $blocks = [];
+        foreach ($stmt as $row) {
+            $id = $row['category_id'];
+            $blocks[$id] ??= ['id' => $id, 'name' => $row['category_name'], 'articles' => []];
+            unset($row['category_id'], $row['category_name']);
+            $blocks[$id]['articles'][] = $row;
+        }
+
+        return array_values($blocks);
     }
 
     /**

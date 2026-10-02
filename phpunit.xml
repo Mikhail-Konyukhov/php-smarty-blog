@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Атрибуты fail*: без них PHPUnit возвращает 0, если тестов нет или в тесте нет проверок -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         failOnEmptyTestSuite="true"
+         failOnRisky="true"
+         failOnWarning="true">
+    <testsuites>
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <!-- force: в контейнере app уже задано DB_NAME=blog, без force тесты сотрут базу сайта -->
+        <env name="DB_NAME" value="blog_test" force="true"/>
+    </php>
+</phpunit>

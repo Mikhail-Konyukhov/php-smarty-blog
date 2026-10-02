@@ -40,6 +40,8 @@ final class BlogController
      */
     public function home(): void
     {
+        $this->smarty->assign('categories', $this->articles->findLatestPerCategory(self::LATEST_PER_CATEGORY));
+        $this->smarty->display('home.tpl');
     }
 
     /**
