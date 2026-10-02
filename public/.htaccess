@@ -1,0 +1,2 @@
+# Всё, что не существующий файл, — в index.php
+FallbackResource /index.php
