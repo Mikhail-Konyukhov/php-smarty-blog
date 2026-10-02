@@ -1,0 +1,53 @@
+services:
+  app:
+    build: docker/php
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    environment:
+      DB_HOST: db
+      DB_NAME: blog
+      DB_USER: blog
+      DB_PASSWORD: blog
+    depends_on:
+      db:
+        condition: service_healthy
+      composer:
+        condition: service_completed_successfully
+
+  # Ставит зависимости и завершается. При сборке образа ставить нельзя:
+  # монтирование папки проекта закроет vendor/. vendor/ лежит в томе Docker,
+  # а не в папке проекта: на Docker Desktop запись в смонтированную папку
+  # в десятки раз медленнее, и установка не укладывается в 5 минут.
+  composer:
+    build: docker/php
+    volumes:
+      - .:/var/www/html
+      - vendor:/var/www/html/vendor
+    environment:
+      COMPOSER_ALLOW_SUPERUSER: 1
+    command: composer install --no-interaction --no-progress
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: blog
+      MYSQL_USER: blog
+      MYSQL_PASSWORD: blog
+    volumes:
+      - db-data:/var/lib/mysql
+    # Проверка по TCP, а не через сокет: пока выполняются скрипты первого
+    # запуска, временный сервер MySQL слушает только сокет. Через сокет
+    # проверка прошла бы раньше, чем база готова.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
+volumes:
+  db-data:
+  vendor:
