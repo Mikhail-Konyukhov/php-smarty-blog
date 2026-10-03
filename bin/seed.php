@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-// Пересоздаёт данные блога: 8 категорий и 300 статей.
+// Пересоздаёт данные блога: 8 категорий и статьи, по умолчанию 300.
 // Запуск: docker compose exec app php bin/seed.php
+// Для замера на большом объёме: docker compose exec app php bin/seed.php 200000
 //
 // Всё идёт в одной транзакции. При ошибке исключение не ловится: скрипт
 // завершается с кодом 255, а MySQL откатывает незакоммиченную транзакцию,
@@ -11,11 +12,21 @@ declare(strict_types=1);
 
 require __DIR__ . '/../vendor/autoload.php';
 
-const ARTICLES = 300;
+// Число статей — первый аргумент. Проверяется до DELETE: иначе «abc» стал бы
+// нулём, и сидер удалил бы все статьи и завершился бы с кодом 0.
+$articleCount = filter_var($argv[1] ?? 300, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+if ($articleCount === false) {
+    fwrite(STDERR, "Число статей — целое от 1, например: php bin/seed.php 200000\n");
+    exit(1);
+}
 
-// Статьи получают 1–3 категории из первых шести: у каждой около 12 страниц,
-// видно сокращение номеров. Седьмая есть только у пяти статей: одна страница,
-// пагинации нет. Восьмая пустая: на главной видно, что пустые скрыты.
+// Сколько заготовить абзацев, заголовков и анонсов
+const TEXTS = 1000;
+
+// Статьи получают 1–3 категории из первых шести: при 300 статьях у каждой
+// около 12 страниц, видно сокращение номеров. Седьмая есть только у пяти
+// статей: одна страница, пагинации нет. Восьмая пустая: на главной видно,
+// что пустые скрыты.
 const CATEGORIES = [
     'Путешествия' => 'Маршруты, города и дороги: куда поехать и что посмотреть.',
     'Технологии'  => 'Гаджеты, программы и то, как они меняют повседневную жизнь.',
@@ -30,6 +41,14 @@ const CATEGORIES = [
 /** @var PDO $pdo */
 $pdo = require __DIR__ . '/../src/db.php';
 $faker = Faker\Factory::create('ru_RU');
+
+// Каждый вызов Faker realText занимает 5–8 мс, на 200 000 статей это больше
+// часа. Поэтому тексты готовятся один раз. Абзацы статьи берут случайно,
+// заголовки и анонсы — по кругу, чтобы до 1000 статей они не повторялись.
+$texts = min(TEXTS, $articleCount);
+$titles = array_map(fn () => rtrim($faker->realText(60), '.'), range(1, $texts));
+$descriptions = array_map(fn () => $faker->realText(200), range(1, $texts));
+$paragraphs = array_map(fn () => $faker->realText(600), range(1, TEXTS));
 
 $images = glob(__DIR__ . '/../public/images/seed/*.jpg');
 if (!$images) {
@@ -57,14 +76,12 @@ foreach (CATEGORIES as $name => $description) {
 }
 
 $links = 0;
-for ($i = 0; $i < ARTICLES; $i++) {
-    // Абзацы разделены пустой строкой, шаблон выводит их через white-space: pre-line
-    $paragraphs = array_map(fn () => $faker->realText(600), range(1, random_int(3, 6)));
-
+for ($i = 0; $i < $articleCount; $i++) {
     $insertArticle->execute([
-        'title' => rtrim($faker->realText(60), '.'),
-        'description' => $faker->realText(200),
-        'body' => implode("\n\n", $paragraphs),
+        'title' => $titles[$i % $texts],
+        'description' => $descriptions[$i % $texts],
+        // Абзацы разделены пустой строкой, шаблон выводит их через white-space: pre-line
+        'body' => implode("\n\n", $faker->randomElements($paragraphs, random_int(3, 6))),
         'image' => '/images/seed/' . basename($faker->randomElement($images)),
         'views' => random_int(0, 5000),
         'published_at' => $faker->dateTimeBetween('-1 year')->format('Y-m-d H:i:s'),
@@ -83,4 +100,4 @@ for ($i = 0; $i < ARTICLES; $i++) {
 
 $pdo->commit();
 
-printf("Категорий: %d, статей: %d, связей статей с категориями: %d\n", count($categoryIds), ARTICLES, $links);
+printf("Категорий: %d, статей: %d, связей статей с категориями: %d\n", count($categoryIds), $articleCount, $links);
