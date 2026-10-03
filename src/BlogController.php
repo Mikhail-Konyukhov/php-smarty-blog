@@ -92,5 +92,14 @@ final class BlogController
      */
     public function article(int $id): void
     {
+        $this->articles->incrementViews($id);
+        $article = $this->articles->find($id) ?? throw new NotFoundException();
+
+        $this->smarty->assign([
+            'article' => $article,
+            'categories' => $this->categories->findByArticle($id),
+            'similar' => $this->articles->findSimilar($id, self::SIMILAR_LIMIT),
+        ]);
+        $this->smarty->display('article.tpl');
     }
 }

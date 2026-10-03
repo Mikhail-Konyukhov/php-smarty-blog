@@ -50,5 +50,15 @@ final class CategoryRepository
      */
     public function findByArticle(int $articleId): array
     {
+        $stmt = $this->pdo->prepare(
+            'SELECT c.id, c.name
+             FROM article_category ac
+             JOIN categories c ON c.id = ac.category_id
+             WHERE ac.article_id = :article_id
+             ORDER BY c.name, c.id'
+        );
+        $stmt->execute(['article_id' => $articleId]);
+
+        return $stmt->fetchAll();
     }
 }

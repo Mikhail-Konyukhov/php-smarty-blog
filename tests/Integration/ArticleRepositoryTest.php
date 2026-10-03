@@ -114,4 +114,78 @@ final class ArticleRepositoryTest extends DatabaseTestCase
         $this->assertSame([$views50, $views40, $tieHigherId], array_column($first, 'id'));
         $this->assertSame([$tieLowerId, $views10], array_column($second, 'id'));
     }
+
+    /**
+     * После двух вызовов просмотров на 2 больше.
+     */
+    public function testIncrementViewsAddsOneEachCall(): void
+    {
+        $id = $this->insertArticle([$this->insertCategory()], views: 5);
+
+        $repository = new ArticleRepository(self::$pdo);
+        $repository->incrementViews($id);
+        $repository->incrementViews($id);
+
+        $this->assertSame(7, self::$pdo->query("SELECT views FROM articles WHERE id = $id")->fetchColumn());
+    }
+
+    /**
+     * Есть статья — все поля, с body; нет статьи — null.
+     */
+    public function testFindReturnsFullArticleOrNull(): void
+    {
+        $id = $this->insertArticle([$this->insertCategory()], '2026-01-02 03:04:05', 12);
+
+        $repository = new ArticleRepository(self::$pdo);
+
+        $this->assertSame(
+            [
+                'id' => $id,
+                'title' => 'Заголовок',
+                'description' => 'Анонс',
+                'body' => 'Текст',
+                'image' => '/images/seed/01.jpg',
+                'views' => 12,
+                'published_at' => '2026-01-02 03:04:05',
+            ],
+            $repository->find($id),
+        );
+        $this->assertNull($repository->find($id + 1));
+    }
+
+    /**
+     * Статья с двумя общими категориями выше статьи с одной, даже если старше;
+     * при равном числе общих — новая выше; самой статьи и повторов нет.
+     */
+    public function testFindSimilarRanksBySharedCategoriesThenDate(): void
+    {
+        $a = $this->insertCategory();
+        $b = $this->insertCategory();
+        $source = $this->insertArticle([$a, $b], '2026-01-01 00:00:00');
+        $twoShared = $this->insertArticle([$a, $b], '2025-01-01 00:00:00');
+        $oneSharedOlder = $this->insertArticle([$b], '2026-02-01 00:00:00');
+        $oneSharedNewer = $this->insertArticle([$a], '2026-03-01 00:00:00');
+
+        $cards = (new ArticleRepository(self::$pdo))->findSimilar($source, 3);
+
+        $this->assertSame([$twoShared, $oneSharedNewer, $oneSharedOlder], array_column($cards, 'id'));
+    }
+
+    /**
+     * Статьи без общих категорий нет; если подходящих меньше лимита,
+     * возвращаются все подходящие.
+     */
+    public function testFindSimilarSkipsUnrelatedAndMayReturnFewer(): void
+    {
+        $a = $this->insertCategory();
+        $b = $this->insertCategory();
+        $source = $this->insertArticle([$a]);
+        $related = $this->insertArticle([$a]);
+        // Новее всех, но без общих категорий
+        $this->insertArticle([$b], '2026-02-01 00:00:00');
+
+        $cards = (new ArticleRepository(self::$pdo))->findSimilar($source, 3);
+
+        $this->assertSame([$related], array_column($cards, 'id'));
+    }
 }

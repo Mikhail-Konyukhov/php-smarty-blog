@@ -140,6 +140,7 @@ final class ArticleRepository
      */
     public function incrementViews(int $id): void
     {
+        $this->pdo->prepare('UPDATE articles SET views = views + 1 WHERE id = :id')->execute(['id' => $id]);
     }
 
     /**
@@ -159,6 +160,14 @@ final class ArticleRepository
      */
     public function find(int $id): ?array
     {
+        $stmt = $this->pdo->prepare(
+            'SELECT id, title, description, body, image, views, published_at
+             FROM articles
+             WHERE id = :id'
+        );
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->fetch() ?: null;
     }
 
     /**
@@ -179,5 +188,21 @@ final class ArticleRepository
      */
     public function findSimilar(int $id, int $limit): array
     {
+        // own — категории исходной статьи, other — другие статьи в тех же категориях.
+        // После GROUP BY a.id COUNT(*) — число общих категорий
+        $stmt = $this->pdo->prepare(
+            'SELECT a.id, a.title, a.description, a.image, a.views, a.published_at
+             FROM article_category own
+             JOIN article_category other ON other.category_id = own.category_id
+                                        AND other.article_id <> own.article_id
+             JOIN articles a ON a.id = other.article_id
+             WHERE own.article_id = :id
+             GROUP BY a.id
+             ORDER BY COUNT(*) DESC, a.published_at DESC, a.id DESC
+             LIMIT :limit'
+        );
+        $stmt->execute(['id' => $id, 'limit' => $limit]);
+
+        return $stmt->fetchAll();
     }
 }
