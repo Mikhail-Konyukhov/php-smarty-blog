@@ -1,0 +1,22 @@
+// Блоки из layout.tpl. Отдельный партиал _main.scss Sass не отличил бы от main.scss
+@use 'variables' as *;
+
+.header {
+    max-width: $content-width;
+    margin: 0 auto;
+    padding: 16px $gutter;
+    border-bottom: 1px solid $color-border;
+
+    &__logo {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: inherit;
+        text-decoration: none;
+    }
+}
+
+.main {
+    max-width: $content-width;
+    margin: 0 auto;
+    padding: 24px $gutter 48px;
+}

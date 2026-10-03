@@ -1,0 +1,16 @@
+@use 'variables' as *;
+
+.button {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 8px 16px;
+    border: 1px solid $color-accent;
+    border-radius: $radius;
+    color: $color-accent;
+    text-decoration: none;
+
+    &:hover {
+        background: $color-accent;
+        color: #fff;
+    }
+}

@@ -3,8 +3,10 @@
 {block name=title}{$category.name}{/block}
 
 {block name=content}
-    <h1>{$category.name}</h1>
-    <p class="category__description">{$category.description}</p>
+    <header class="category">
+        <h1>{$category.name}</h1>
+        <p class="category__description">{$category.description}</p>
+    </header>
 
     {* Смена сортировки ведёт на первую страницу *}
     <p class="sort">

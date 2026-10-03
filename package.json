@@ -1,0 +1,10 @@
+{
+    "private": true,
+    "scripts": {
+        "build": "sass scss/main.scss public/css/main.css",
+        "watch": "sass --watch --poll scss/main.scss public/css/main.css"
+    },
+    "devDependencies": {
+        "sass": "^1.105.1"
+    }
+}

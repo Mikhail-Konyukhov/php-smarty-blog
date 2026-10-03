@@ -1,0 +1,34 @@
+@use 'variables' as *;
+
+// Ширина пункта 28px: 11 пунктов (стрелки, 7 номеров, два «…») помещаются
+// в строку на телефоне шириной 375px
+.pagination {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 32px;
+
+    // Пункт без ссылки — «…» или стрелка на крайней странице, он серый
+    &__item {
+        min-width: 28px;
+        padding: 6px 4px;
+        border-radius: $radius;
+        text-align: center;
+        color: $color-muted;
+
+        &[href] {
+            color: $color-text;
+            text-decoration: none;
+
+            &:hover {
+                background: $color-hover;
+            }
+        }
+
+        &--current {
+            background: $color-accent;
+            color: #fff;
+        }
+    }
+}

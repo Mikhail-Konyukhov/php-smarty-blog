@@ -1,0 +1,29 @@
+@use 'variables' as *;
+
+.sort {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 24px;
+    color: $color-muted;
+
+    &__link {
+        padding: 4px 12px;
+        border: 1px solid $color-border;
+        border-radius: 999px;
+        color: $color-text;
+        text-decoration: none;
+
+        &:hover {
+            background: $color-hover;
+        }
+
+        &--active,
+        &--active:hover {
+            border-color: $color-accent;
+            background: $color-accent;
+            color: #fff;
+        }
+    }
+}

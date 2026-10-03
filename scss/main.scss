@@ -1,0 +1,11 @@
+// Точка сборки: партиал на каждый блок БЭМ из шаблонов, блоки layout.tpl — в одном
+@use 'base';
+@use 'layout';
+@use 'block';
+@use 'grid';
+@use 'card';
+@use 'button';
+@use 'category';
+@use 'sort';
+@use 'pagination';
+@use 'article';

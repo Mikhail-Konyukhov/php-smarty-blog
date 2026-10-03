@@ -16,6 +16,10 @@ services:
         condition: service_healthy
       composer:
         condition: service_completed_successfully
+      # Без ожидания up -d вернёт управление раньше, чем собран CSS,
+      # а ошибка в SCSS не остановит запуск
+      assets:
+        condition: service_completed_successfully
 
   # Ставит зависимости и завершается. При сборке образа ставить нельзя:
   # монтирование папки проекта закроет vendor/. vendor/ лежит в томе Docker,
@@ -29,6 +33,17 @@ services:
     environment:
       COMPOSER_ALLOW_SUPERUSER: 1
     command: composer install --no-interaction --no-progress
+
+  # Собирает public/css/main.css и завершается. node_modules/ лежит в томе
+  # Docker, как vendor/: пакеты из контейнера не смешиваются с npm на хосте.
+  # --ignore-scripts убирает предупреждение npm 11 о скрипте @parcel/watcher.
+  assets:
+    image: node:24-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: sh -c "npm ci --ignore-scripts && npm run build"
 
   db:
     image: mysql:8.4
@@ -53,3 +68,4 @@ services:
 volumes:
   db-data:
   vendor:
+  node_modules:
