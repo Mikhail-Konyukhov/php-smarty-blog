@@ -93,6 +93,10 @@ final class ArticleRepository
      */
     public function countByCategory(int $categoryId): int
     {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM article_category WHERE category_id = :category_id');
+        $stmt->execute(['category_id' => $categoryId]);
+
+        return $stmt->fetchColumn();
     }
 
     /**
@@ -114,6 +118,18 @@ final class ArticleRepository
      */
     public function findByCategory(int $categoryId, ArticleSort $sort, int $limit, int $offset): array
     {
+        // ORDER BY не принимает параметры; строка приходит только из enum
+        $stmt = $this->pdo->prepare(
+            "SELECT a.id, a.title, a.description, a.image, a.views, a.published_at
+             FROM article_category ac
+             JOIN articles a ON a.id = ac.article_id
+             WHERE ac.category_id = :category_id
+             ORDER BY {$sort->orderBy()}
+             LIMIT :limit OFFSET :offset"
+        );
+        $stmt->execute(['category_id' => $categoryId, 'limit' => $limit, 'offset' => $offset]);
+
+        return $stmt->fetchAll();
     }
 
     /**

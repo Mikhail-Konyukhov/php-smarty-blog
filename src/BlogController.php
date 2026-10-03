@@ -61,6 +61,22 @@ final class BlogController
      */
     public function category(int $id, ArticleSort $sort, int $page): void
     {
+        $category = $this->categories->find($id) ?? throw new NotFoundException();
+
+        $pagination = new Pagination($this->articles->countByCategory($id), $page, self::PER_PAGE);
+        if ($page > $pagination->pages) {
+            throw new NotFoundException();
+        }
+
+        $this->smarty->assign([
+            'category' => $category,
+            'articles' => $this->articles->findByCategory($id, $sort, self::PER_PAGE, $pagination->offset),
+            'sort' => $sort->value,
+            'page' => $page,
+            'pages' => $pagination->pages,
+            'links' => $pagination->links(),
+        ]);
+        $this->smarty->display('category.tpl');
     }
 
     /**

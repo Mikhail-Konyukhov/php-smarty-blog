@@ -27,5 +27,9 @@ enum ArticleSort: string
      */
     public function orderBy(): string
     {
+        return match ($this) {
+            self::Date => 'published_at DESC, id DESC',
+            self::Views => 'views DESC, id DESC',
+        };
     }
 }

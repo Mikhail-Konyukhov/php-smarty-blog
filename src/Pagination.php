@@ -28,6 +28,8 @@ final class Pagination
      */
     public function __construct(int $total, private readonly int $page, int $perPage)
     {
+        $this->pages = max(1, (int) ceil($total / $perPage));
+        $this->offset = ($page - 1) * $perPage;
     }
 
     /**
@@ -45,5 +47,25 @@ final class Pagination
      */
     public function links(): array
     {
+        $from = max(1, $this->page - self::AROUND);
+        $to = min($this->pages, $this->page + self::AROUND);
+
+        // Пропуск в одну страницу короче «…», поэтому выводим её номер
+        if ($from <= 3) {
+            $from = 1;
+        }
+        if ($to >= $this->pages - 2) {
+            $to = $this->pages;
+        }
+
+        $links = range($from, $to);
+        if ($from > 1) {
+            array_unshift($links, 1, null);
+        }
+        if ($to < $this->pages) {
+            array_push($links, null, $this->pages);
+        }
+
+        return $links;
     }
 }

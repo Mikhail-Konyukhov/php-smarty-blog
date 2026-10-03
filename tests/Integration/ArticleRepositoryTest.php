@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Integration;
 
 use App\ArticleRepository;
+use App\ArticleSort;
 
 final class ArticleRepositoryTest extends DatabaseTestCase
 {
@@ -53,5 +54,64 @@ final class ArticleRepositoryTest extends DatabaseTestCase
         $this->assertSame([$a, $b], array_column($blocks, 'id'));
         $this->assertSame([$shared], array_column($blocks[0]['articles'], 'id'));
         $this->assertSame([$shared, $onlyB], array_column($blocks[1]['articles'], 'id'));
+    }
+
+    /**
+     * Считаются только статьи этой категории.
+     */
+    public function testCountByCategoryCountsOnlyThatCategory(): void
+    {
+        $a = $this->insertCategory();
+        $b = $this->insertCategory();
+        $this->insertArticle([$a]);
+        $this->insertArticle([$a, $b]);
+        $this->insertArticle([$b]);
+        $this->insertArticle([$b]);
+
+        $repository = new ArticleRepository(self::$pdo);
+
+        $this->assertSame(2, $repository->countByCategory($a));
+        $this->assertSame(3, $repository->countByCategory($b));
+    }
+
+    /**
+     * По дате: сначала новые, статей других категорий нет.
+     */
+    public function testFindByCategorySortsByDateNewestFirst(): void
+    {
+        $own = $this->insertCategory();
+        $other = $this->insertCategory();
+        $jan2 = $this->insertArticle([$own], '2026-01-02 00:00:00');
+        $jan3 = $this->insertArticle([$own], '2026-01-03 00:00:00');
+        $jan1 = $this->insertArticle([$own], '2026-01-01 00:00:00');
+        // Новее всех, но в другой категории
+        $this->insertArticle([$other], '2026-02-01 00:00:00');
+
+        $cards = (new ArticleRepository(self::$pdo))->findByCategory($own, ArticleSort::Date, 9, 0);
+
+        $this->assertSame([$jan3, $jan2, $jan1], array_column($cards, 'id'));
+    }
+
+    /**
+     * По просмотрам: по убыванию, статьи с равными просмотрами — по id. Две
+     * страницы одного списка не делят ни одной статьи и вместе дают все статьи.
+     */
+    public function testFindByCategorySortsByViewsAndPagesDoNotOverlap(): void
+    {
+        $category = $this->insertCategory();
+        // Две статьи по 30 просмотров стоят на стыке страниц: без второго ключа
+        // сортировки одна из них могла бы попасть на обе страницы
+        $tieLowerId = $this->insertArticle([$category], views: 30);
+        $views10 = $this->insertArticle([$category], views: 10);
+        $views50 = $this->insertArticle([$category], views: 50);
+        $tieHigherId = $this->insertArticle([$category], views: 30);
+        $views40 = $this->insertArticle([$category], views: 40);
+
+        $repository = new ArticleRepository(self::$pdo);
+        $first = $repository->findByCategory($category, ArticleSort::Views, 3, 0);
+        $second = $repository->findByCategory($category, ArticleSort::Views, 3, 3);
+
+        $this->assertSame([$views50, $views40, $tieHigherId], array_column($first, 'id'));
+        $this->assertSame([$tieLowerId, $views10], array_column($second, 'id'));
     }
 }

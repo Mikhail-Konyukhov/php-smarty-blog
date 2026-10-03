@@ -31,6 +31,10 @@ final class CategoryRepository
      */
     public function find(int $id): ?array
     {
+        $stmt = $this->pdo->prepare('SELECT id, name, description FROM categories WHERE id = :id');
+        $stmt->execute(['id' => $id]);
+
+        return $stmt->fetch() ?: null;
     }
 
     /**
