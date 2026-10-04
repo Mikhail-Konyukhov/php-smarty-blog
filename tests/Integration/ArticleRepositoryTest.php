@@ -116,6 +116,25 @@ final class ArticleRepositoryTest extends DatabaseTestCase
     }
 
     /**
+     * По возрастанию: сначала старые и сначала с меньшими просмотрами, статьи
+     * с равными просмотрами — тоже по возрастанию id.
+     */
+    public function testFindByCategorySortsAscending(): void
+    {
+        $category = $this->insertCategory();
+        $jan3 = $this->insertArticle([$category], '2026-01-03 00:00:00', views: 10);
+        $jan1 = $this->insertArticle([$category], '2026-01-01 00:00:00', views: 30);
+        $jan2 = $this->insertArticle([$category], '2026-01-02 00:00:00', views: 10);
+
+        $repository = new ArticleRepository(self::$pdo);
+        $byDate = $repository->findByCategory($category, ArticleSort::DateAsc, 9, 0);
+        $byViews = $repository->findByCategory($category, ArticleSort::ViewsAsc, 9, 0);
+
+        $this->assertSame([$jan1, $jan2, $jan3], array_column($byDate, 'id'));
+        $this->assertSame([$jan3, $jan2, $jan1], array_column($byViews, 'id'));
+    }
+
+    /**
      * После двух вызовов просмотров на 2 больше.
      */
     public function testIncrementViewsAddsOneEachCall(): void

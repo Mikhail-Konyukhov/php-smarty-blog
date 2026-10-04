@@ -8,11 +8,11 @@
         <p class="category__description">{$category.description}</p>
     </header>
 
-    {* Смена сортировки ведёт на первую страницу *}
+    {* Смена сортировки ведёт на первую страницу. Клик по активной сортировке меняет направление *}
     <p class="sort">
         Сортировка:
-        <a class="sort__link{if $sort == 'date'} sort__link--active{/if}" href="/category/{$category.id}?sort=date">по дате</a>
-        <a class="sort__link{if $sort == 'views'} sort__link--active{/if}" href="/category/{$category.id}?sort=views">по просмотрам</a>
+        <a class="sort__link{if $sort == 'date' || $sort == 'date-asc'} sort__link--active{/if}" href="/category/{$category.id}?sort={if $sort == 'date'}date-asc{else}date{/if}">по дате {if $sort == 'date-asc'}↑{else}↓{/if}</a>
+        <a class="sort__link{if $sort == 'views' || $sort == 'views-asc'} sort__link--active{/if}" href="/category/{$category.id}?sort={if $sort == 'views'}views-asc{else}views{/if}">по просмотрам {if $sort == 'views-asc'}↑{else}↓{/if}</a>
     </p>
 
     {if $articles}
