@@ -1,8 +1,9 @@
 services:
   app:
     build: docker/php
+    # Если 8080 занят, Docker берёт другой свободный порт из диапазона
     ports:
-      - "${APP_PORT:-8080}:80"
+      - "${APP_PORT:-8080-8099}:80"
     volumes:
       - .:/var/www/html
       - vendor:/var/www/html/vendor

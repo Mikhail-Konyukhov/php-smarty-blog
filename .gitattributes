@@ -1,0 +1,3 @@
+# sh не запустит скрипт с CRLF, cmd путается в метках при LF
+*.sh  text eol=lf
+*.bat text eol=crlf
